@@ -10,7 +10,6 @@ export default function AuthForm({ setToken, setUsername }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     try {
       const url = `http://localhost:5000/api/auth/${formType}`;
@@ -44,7 +43,6 @@ export default function AuthForm({ setToken, setUsername }) {
       setError(err.response?.data?.msg || "Something went wrong!");
     }
   };
-
 
   return (
     <div className="flex justify-center mt-20">

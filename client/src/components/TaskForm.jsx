@@ -1,53 +1,137 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 function TaskForm() {
   const [task, setTask] = useState("");
-  // const [taskList, setTaskList] = useState([]);
-  const [selectedDate,setSelectedDate] = useState(() => {
-    const today = new Date()
-    return today.toISOString().split("T")[0]
-  })
-  const [tasksByDate, setTasksByDate] = useState({})
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  });
+  const [tasksByDate, setTasksByDate] = useState({});
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const token = localStorage.getItem("token");
+
+      try {
+        const response = await axios.get(`/api/task?date=${selectedDate}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const fetchedTasks = response.data.tasks;
+
+        setTasksByDate((prev) => ({
+          ...prev,
+          [selectedDate]: fetchedTasks,
+        }));
+      } catch (error) {
+        console.error(
+          "Failed to fetch tasks:",
+          error.response?.data || error.message
+        );
+      }
+    };
+
+    fetchTasks();
+  }, [selectedDate]);
 
   const handleTaskChange = (event) => {
     setTask(event.target.value);
   };
 
-  const handleSubmit = (event) => {
+  const getTasksForDate = (date) => {
+    return tasksByDate[date] || [];
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (task.trim() !== "") {
-      const newTask = { text: task, Done: false };
-      const updatedTasks = [...getTasksForDate(selectedDate), newTask];
+    const token = localStorage.getItem("token");
+
+    if (task.trim() === "") return;
+
+    try {
+      const response = await axios.post(
+        "/api/task",
+        { title: task, date: selectedDate },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Task created", response.data.task);
+      const createdTask = response.data.task;
+      const updatedTasks = [...getTasksForDate(selectedDate), createdTask];
 
       setTasksByDate({ ...tasksByDate, [selectedDate]: updatedTasks });
       setTask("");
+    } catch (error) {
+      console.error(
+        "Task creation Failed!",
+        error.response?.data || error.message
+      );
     }
   };
+const toggleDone = async (index, taskId) => {
+  const currentStatus = getTasksForDate(selectedDate)[index].completed;
 
-  const toggleDone = (index) => {
-    const updatedTasks = [...getTasksForDate(selectedDate)];
-    updatedTasks[index].Done = !updatedTasks[index].Done;
-    setTasksByDate({ ...tasksByDate, [selectedDate]: updatedTasks });
-  };
+  try {
+    const token = localStorage.getItem("token"); // or sessionStorage
 
-
-  const deleteTask = (index) => {
-    const updatedTasks = getTasksForDate(selectedDate).filter(
-      (_, i) => i !== index
+    const response = await axios.patch(
+      `http://localhost:5000/api/task/${taskId}`,
+      { completed: !currentStatus },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
+
+    const updatedTasks = [...getTasksForDate(selectedDate)];
+    updatedTasks[index].completed = response.data.task.completed;
+
     setTasksByDate({ ...tasksByDate, [selectedDate]: updatedTasks });
+  } catch (error) {
+    console.error(
+      "Failed to update task:",
+      error.response?.data || error.message
+    );
+  }
+};
+
+
+  const deleteTask = async (index, taskId) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      await axios.delete(`/api/task/${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const updatedTasks = getTasksForDate(selectedDate).filter(
+        (_, i) => i !== index
+      );
+      setTasksByDate({ ...tasksByDate, [selectedDate]: updatedTasks });
+    } catch (error) {
+      console.error(
+        "Failed to delete task:",
+        error.response?.data || error.message
+      );
+    }
   };
 
   const changeDate = (offset) => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + offset);
-    const newDate = date.toISOString().split("T")[0]; 
+    const newDate = date.toISOString().split("T")[0];
     setSelectedDate(newDate);
   };
-
-  const getTasksForDate = (date) => {
-    return tasksByDate[date] || []
-  }
 
   return (
     <div className="max-w-xl mx-auto mt-10">
@@ -93,28 +177,28 @@ function TaskForm() {
 
         <ul className="space-y-4">
           {getTasksForDate(selectedDate).map((t, index) => (
-            <li key={index}>
+            <li key={t._id}>
               <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-md border border-gray-300">
                 <span
                   className={`text-lg ${
-                    t.Done ? "line-through text-gray-400" : "text-gray-800"
+                    t.completed ? "line-through text-gray-400" : "text-gray-800"
                   }`}
                 >
-                  {t.text}
+                  {t.title}
                 </span>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => toggleDone(index)}
+                    onClick={() => toggleDone(index, t._id)}
                     className={`px-4 py-2 rounded-md text-white shadow ${
-                      t.Done
+                      t.completed
                         ? "bg-green-500 hover:bg-green-700"
                         : "bg-blue-500 hover:bg-blue-700"
                     }`}
                   >
-                    {t.Done ? "Undo" : "Done"}
+                    {t.completed ? "Undo" : "Done"}
                   </button>
                   <button
-                    onClick={() => deleteTask(index)}
+                    onClick={() => deleteTask(index, t._id)}
                     className="px-4 py-2 bg-red-500 hover:bg-red-700 text-white rounded-md shadow"
                   >
                     Delete
