@@ -53,4 +53,4 @@ CONNECTION_STRING=your_mongo_uri JWT_SECRET=your_secret
 
 ## 👤 Author
 
-Made with love by [Abinaya](https://www.linkedin.com/in/abinaya-ravishankar-83a503257) 🧠💻
+Made with love by [Abinaya](https://www.linkedin.com/in/abinaya-ravishankar-83a503257)
