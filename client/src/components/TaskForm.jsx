@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+const BASE_URL = "https://task-tracker-a5fa.onrender.com";
+
 function TaskForm() {
   const [task, setTask] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -9,22 +11,21 @@ function TaskForm() {
   });
   const [tasksByDate, setTasksByDate] = useState({});
 
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     const fetchTasks = async () => {
-      const token = localStorage.getItem("token");
-
       try {
-        const response = await axios.get(`/api/task?date=${selectedDate}`, {
+        const response = await axios.get(`${BASE_URL}/api/task`, {
+          params: { date: selectedDate },
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        const fetchedTasks = response.data.tasks;
-
         setTasksByDate((prev) => ({
           ...prev,
-          [selectedDate]: fetchedTasks,
+          [selectedDate]: response.data.tasks,
         }));
       } catch (error) {
         console.error(
@@ -41,19 +42,15 @@ function TaskForm() {
     setTask(event.target.value);
   };
 
-  const getTasksForDate = (date) => {
-    return tasksByDate[date] || [];
-  };
+  const getTasksForDate = (date) => tasksByDate[date] || [];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const token = localStorage.getItem("token");
-
     if (task.trim() === "") return;
 
     try {
       const response = await axios.post(
-        "/api/task",
+        `${BASE_URL}/api/task`,
         { title: task, date: selectedDate },
         {
           headers: {
@@ -62,7 +59,6 @@ function TaskForm() {
         }
       );
 
-      console.log("Task created", response.data.task);
       const createdTask = response.data.task;
       const updatedTasks = [...getTasksForDate(selectedDate), createdTask];
 
@@ -75,40 +71,36 @@ function TaskForm() {
       );
     }
   };
-const toggleDone = async (index, taskId) => {
-  const currentStatus = getTasksForDate(selectedDate)[index].completed;
 
-  try {
-    const token = localStorage.getItem("token"); // or sessionStorage
-
-    const response = await axios.patch(
-      `https://task-tracker-a5fa.onrender.com/api/task/${taskId}`,
-      { completed: !currentStatus },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    const updatedTasks = [...getTasksForDate(selectedDate)];
-    updatedTasks[index].completed = response.data.task.completed;
-
-    setTasksByDate({ ...tasksByDate, [selectedDate]: updatedTasks });
-  } catch (error) {
-    console.error(
-      "Failed to update task:",
-      error.response?.data || error.message
-    );
-  }
-};
-
-
-  const deleteTask = async (index, taskId) => {
-    const token = localStorage.getItem("token");
+  const toggleDone = async (index, taskId) => {
+    const currentStatus = getTasksForDate(selectedDate)[index].completed;
 
     try {
-      await axios.delete(`/api/task/${taskId}`, {
+      const response = await axios.patch(
+        `${BASE_URL}/api/task/${taskId}`,
+        { completed: !currentStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const updatedTasks = [...getTasksForDate(selectedDate)];
+      updatedTasks[index].completed = response.data.task.completed;
+
+      setTasksByDate({ ...tasksByDate, [selectedDate]: updatedTasks });
+    } catch (error) {
+      console.error(
+        "Failed to update task:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  const deleteTask = async (index, taskId) => {
+    try {
+      await axios.delete(`${BASE_URL}/api/task/${taskId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
