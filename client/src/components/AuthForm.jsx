@@ -12,13 +12,13 @@ export default function AuthForm({ setToken, setUsername }) {
     e.preventDefault();
 
     try {
-      const url = `http://localhost:5000/api/auth/${formType}`;
+      const url = `https://task-tracker-a5fa.onrender.com/api/auth/${formType}`;
       const res = await axios.post(url, { username, password });
 
       if (formType === "signup") {
         // After signup, automatically switch to login and trigger it
         const loginRes = await axios.post(
-          "http://localhost:5000/api/auth/login",
+          "https://task-tracker-a5fa.onrender.com/api/auth/login",
           {
             username,
             password,

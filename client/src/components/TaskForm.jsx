@@ -82,7 +82,7 @@ const toggleDone = async (index, taskId) => {
     const token = localStorage.getItem("token"); // or sessionStorage
 
     const response = await axios.patch(
-      `http://localhost:5000/api/task/${taskId}`,
+      `https://task-tracker-a5fa.onrender.com/api/task/${taskId}`,
       { completed: !currentStatus },
       {
         headers: {
